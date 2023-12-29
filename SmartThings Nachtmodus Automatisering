@@ -1,0 +1,90 @@
+configuration.yaml
+rest_command:
+  smartthings_command:
+    url: "https://api.smartthings.com/v1/devices/{{ device_id }}/commands"
+    method: post
+    headers:
+      authorization: !secret smartthings_token
+    content_type: "application/json"
+    payload: >
+      {
+        "commands": [
+          {
+            "component": "main",
+            "capability": "execute",
+            "command": "execute",
+            "arguments": [
+              "{{ api_uri }}",
+              {
+                "{{ capability }}": {{ value }}
+              }
+            ]
+          }
+        ]
+      }
+
+
+Automation:
+alias: SmartThings Nachtmodus Automatisering
+description: ""
+trigger:
+  - platform: time
+    at: "22:00:00"
+  - platform: time
+    at: "00:00:00"
+  - platform: time
+    at: "07:00:00"
+action:
+  - choose:
+      - conditions:
+          - condition: time
+            weekday:
+              - mon
+              - tue
+              - wed
+              - thu
+              - sun
+            after: "21:55:00"
+            before: "22:05:00"
+          - condition: template
+            value_template: "value_template: \"{{ now().strftime('%H:%M:%S') == '23:00:00' }}\""
+            enabled: false
+        sequence:
+          - service: rest_command.smartthings_command
+            data:
+              device_id: 
+              api_uri: /sec/networkaudio/advancedaudio
+              capability: x.com.samsung.networkaudio.nightmode
+              value: "1"
+      - conditions:
+          - condition: time
+            weekday:
+              - sat
+              - fri
+            after: "23:55:00"
+            before: "00:05:00"
+          - condition: template
+            value_template: "value_template: \"{{ now().strftime('%H:%M:%S') == '00:00:00' }}\""
+            enabled: false
+        sequence:
+          - service: rest_command.smartthings_command
+            data:
+              device_id: 
+              api_uri: /sec/networkaudio/advancedaudio
+              capability: x.com.samsung.networkaudio.nightmode
+              value: "1"
+      - conditions:
+          - condition: template
+            value_template: "value_template: \"{{ now().strftime('%H:%M:%S') == '07:00:00' }}\""
+            enabled: false
+          - condition: time
+            after: "06:55:00"
+            before: "07:05:00"
+        sequence:
+          - service: rest_command.smartthings_command
+            data:
+              device_id: 
+              api_uri: /sec/networkaudio/advancedaudio
+              capability: x.com.samsung.networkaudio.nightmode
+              value: "0"
+mode: single
